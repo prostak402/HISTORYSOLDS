@@ -26,17 +26,28 @@ function getTransactionType() {
 
 function extractPayload() {
   const name = pickText([
+    '[class*="TransactionItem_name"]',
     '[class*="BaseCard_name"]',
     '[class*="BaseCard_title"]',
     '[class*="ItemName"]',
     '[class*="market-item"] [class*="name"]',
-    '[class*="MarketItem_name"]'
+    '[class*="MarketItem_name"]',
+    '[class*="DealItem_name"]',
+    '[class*="ItemTitle"]',
+    '[class*="ItemInfo_name"]',
+    'h1',
+    'h2'
   ]) || pickText(['img[alt]']);
 
   const dateText = pickText([
     '[class*="TransactionHeader_bottom"]',
-    '[class*="TransactionHeader_bottom"] span'
-  ]);
+    '[class*="TransactionHeader_bottom"] span',
+    '[class*="TransactionHeader_date"]',
+    '[class*="TransactionHeader_time"]',
+    '[class*="date"]',
+    '[class*="Date"]',
+    'time'
+  ]) || document.querySelector('time[datetime]')?.getAttribute('datetime') || '';
 
   const priceText = pickText([
     '[class*="BaseCard_price"] [class*="price_currency"]',
@@ -73,8 +84,18 @@ function ensureStyles() {
       color: #1e2b52;
       font-weight: 600;
       cursor: pointer;
+      box-sizing: border-box;
+      max-width: 100%;
+      flex: 0 1 auto;
+      white-space: nowrap;
     }
     .${BUTTON_CLASS}:hover { background: rgba(122,162,255,.25); }
+    @media (max-width: 720px) {
+      .${BUTTON_CLASS} {
+        width: 100%;
+        justify-content: center;
+      }
+    }
   `;
   document.head.appendChild(style);
 }
@@ -122,7 +143,7 @@ function insertButton() {
       }
     });
   });
-  container.appendChild(btn);
+  container.prepend(btn);
 }
 
 const observer = new MutationObserver(() => insertButton());
