@@ -660,6 +660,64 @@
       setTimeout(() => { alert('Сделка добавлена в историю.'); }, 50);
     }
 
+    function readFeesFromForm() {
+      return {
+        pc: asNum(buyFee)/100,
+        sc: asNum(sellFee)/100,
+        wp: asNum(wdPct)/100,
+        wf: asNum(wdFix),
+        payout: document.querySelector('input[name="payout"]:checked')?.value || 'single'
+      };
+    }
+
+    function parseRuDateTime(value) {
+      if (!value) return null;
+      if (typeof value === 'number') return value;
+      if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+        const parsed = Date.parse(value);
+        return isNaN(parsed) ? null : parsed;
+      }
+      const match = String(value).trim().match(/(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
+      if (!match) return null;
+      const [, dd, mm, yyyy, hh = '00', min = '00'] = match;
+      const iso = `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
+      const parsed = Date.parse(iso);
+      return isNaN(parsed) ? null : parsed;
+    }
+
+    function addExternalRecord(payload) {
+      if (!payload || typeof payload !== 'object') return;
+      const fees = readFeesFromForm();
+      const price = Number(payload.price || payload.buyPrice || payload.sellPrice || 0);
+      if (!price || price <= 0) { alert('Не удалось определить цену из внешней страницы.'); return; }
+      const type = payload.type === 'sell' ? 'sell' : 'buy';
+      const buy = Number(payload.buyPrice || price);
+      const sell = Number(payload.sellPrice || price);
+      const Q = Math.max(1, Number(payload.qty || 1));
+      const ts = parseRuDateTime(payload.date) || nowTs();
+      const acqTs = payload.acqDate ? (parseRuDateTime(payload.acqDate) || ts) : ts;
+      const banned = payload.tradeBan != null ? !!payload.tradeBan : type === 'buy';
+      const unlockTs = banned ? (acqTs + 7*dayMs) : null;
+      const st = { n: buy, pc: fees.pc, x: sell, sc: fees.sc, wp: fees.wp, wf: fees.wf, Q, payout: fees.payout };
+      const r = compute(st);
+      const rec = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2,8),
+        ts,
+        acqTs,
+        unlockTs,
+        banned,
+        name: (payload.name || '').trim() || 'Без названия',
+        ...st,
+        completed: false,
+        ...r
+      };
+      const list = loadHistory();
+      list.push(rec); saveHistory(list);
+      renderHistory();
+      location.hash = '#history';
+      setTimeout(() => { alert('Сделка добавлена из расширения.'); }, 50);
+    }
+
     function daysLeft(unlockTs) {
       const d = Math.ceil((unlockTs - nowTs())/dayMs); return d > 0 ? d : 0;
     }
@@ -961,6 +1019,14 @@ function toggleCompletedById(id) {
     document.getElementById('clearAll').addEventListener('click', clearAll);
 
     const runBtn = document.getElementById('runTests'); if (runBtn) runBtn.addEventListener('click', runTests);
+
+    window.addEventListener('message', (event) => {
+      if (event.source !== window) return;
+      const data = event.data || {};
+      if (data?.type === 'CS_PROFIT_IMPORT') {
+        addExternalRecord(data.payload);
+      }
+    });
 
     // ——— Инициализация ———
     // Если дата не задана — ставим текущее локальное время в формате datetime-local

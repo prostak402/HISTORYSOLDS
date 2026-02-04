@@ -1,0 +1,32 @@
+{
+  "name": "CS Profit History Importer",
+  "description": "Добавляет кнопки импорта сделок с CS.MONEY и Market.CSGO в локальную историю калькулятора.",
+  "version": "0.1.0",
+  "manifest_version": 3,
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://cs.money/*",
+    "https://market.csgo.com/*",
+    "file:///*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://cs.money/ru/market/history/*"],
+      "js": ["cs-money.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://market.csgo.com/ru/usercab/history/market*"],
+      "js": ["market-csgo.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["file:///*"],
+      "js": ["history-bridge.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
