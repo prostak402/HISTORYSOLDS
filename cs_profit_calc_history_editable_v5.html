@@ -120,9 +120,6 @@
 #historyTable th:last-child, #historyTable td:last-child { width: 260px; }
 
     .history-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; align-items: center; }
-    .history-import { display: flex; gap: 10px; flex-wrap: wrap; margin: 6px 0 14px; align-items: center; }
-    .history-import button { padding: 8px 10px; font-size: 12px; }
-    .import-help { color: var(--muted); font-size: 12px; }
     .grow { flex: 1 1 auto; }
     .checks { display: flex; align-items: center; gap: 10px; }
     .totals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 10px 0 14px; }
@@ -350,12 +347,6 @@
             <button id="clearAll" class="ghost">Очистить всё</button>
           </div>
 
-          <div class="history-import">
-            <button id="importMarket">Импорт из Market.csgo.com</button>
-            <button id="importCsMoney">Импорт из CS.MONEY</button>
-            <span class="import-help">Открой историю на маркете, нажми Ctrl+A → Ctrl+C, затем кнопку импорта. Если буфер недоступен, вставь HTML вручную.</span>
-          </div>
-
           <div class="totals" id="totalsBox">
             <div class="stat"><div class="k">Себестоимость (всего)</div><div class="v" id="tCost">—</div></div>
             <div class="stat"><div class="k">Получено после вывода (факт, без бана)</div><div class="v" id="tAfterWdActual">—</div></div>
@@ -472,8 +463,6 @@
     const exportJsonBtn = E('exportJson');
     const importJsonBtn = E('importJson');
     const fileInput = E('fileInput');
-    const importMarketBtn = E('importMarket');
-    const importCsMoneyBtn = E('importCsMoney');
 
     const tCost = E('tCost');
     const tAfterWdActual = E('tAfterWdActual');
@@ -646,115 +635,6 @@
       } catch { return []; }
     }
     function saveHistory(arr) { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); } catch {} }
-
-    function parsePrice(text) {
-      const cleaned = (text || '').toString().replace(/\s+/g, '').replace(/[^\d.,-]/g, '').replace(',', '.');
-      const n = parseFloat(cleaned);
-      return isFinite(n) ? n : 0;
-    }
-    function normalizeType(text) {
-      const t = (text || '').toString().toLowerCase();
-      if (t.includes('покуп') || t.includes('buy')) return 'buy';
-      if (t.includes('продаж') || t.includes('sell')) return 'sell';
-      return 'unknown';
-    }
-    function parseRuDateTime(dateStr, timeStr) {
-      const dMatch = (dateStr || '').match(/(\d{2})\.(\d{2})\.(\d{4})/);
-      const tMatch = (timeStr || '').match(/(\d{2}):(\d{2})/);
-      if (!dMatch) return null;
-      const [, dd, mm, yyyy] = dMatch;
-      const hh = tMatch ? tMatch[1] : '00';
-      const min = tMatch ? tMatch[2] : '00';
-      return new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min)).getTime();
-    }
-
-    function parseMarketHistory(html) {
-      const doc = new DOMParser().parseFromString(html, 'text/html');
-      const rows = doc.querySelectorAll('app-history-table tbody tr, app-history-table .mat-mdc-row, .history-table tbody tr');
-      return Array.from(rows).map((row) => {
-        const typeText = row.querySelector('.history-type span')?.textContent || row.querySelector('.history-type')?.textContent || '';
-        const type = normalizeType(typeText);
-        const name = row.querySelector('.item-name a')?.textContent || row.querySelector('.item-name')?.textContent || row.querySelector('a[title]')?.getAttribute('title') || '';
-        const priceText = row.querySelector('.price span:last-child')?.textContent || row.querySelector('.price')?.textContent || '';
-        const dateEl = row.querySelector('.date');
-        const dateText = dateEl?.querySelector('div')?.textContent || '';
-        const timeText = dateEl?.querySelector('.time')?.textContent || dateEl?.querySelectorAll('div')?.[1]?.textContent || '';
-        const ts = parseRuDateTime(dateText, timeText) || nowTs();
-        return { name: name.trim(), type, price: parsePrice(priceText), ts };
-      }).filter(r => r.name || r.price);
-    }
-
-    function parseCsMoneyHistory(html) {
-      const doc = new DOMParser().parseFromString(html, 'text/html');
-      const rowSelectors = [
-        '.history__item', '.history-item', '.history_row', '.history-row',
-        '[data-history-item]', '[data-testid*="history"]'
-      ];
-      let rows = doc.querySelectorAll(rowSelectors.join(','));
-      if (!rows.length) rows = doc.querySelectorAll('tr');
-      const pickText = (row, selectors) => {
-        for (const sel of selectors) {
-          const el = row.querySelector(sel);
-          const txt = el?.textContent?.trim();
-          if (txt) return txt;
-        }
-        return '';
-      };
-      return Array.from(rows).map((row) => {
-        const name = pickText(row, ['.item-name', '.market-item__name', '.item-title', 'a[title]', '[data-item-name]', '[data-name]']);
-        const priceText = pickText(row, ['.price', '.item-price', '.history__price', '.history-price', '[data-price]']);
-        const typeText = pickText(row, ['.history-type', '.history__type', '.history__status', '.type', '.event', '.action']);
-        const type = normalizeType(typeText || row.textContent);
-        const dateText = pickText(row, ['.date', '.history__date', 'time']);
-        const ts = parseRuDateTime(dateText, row.textContent) || nowTs();
-        return { name: name.trim(), type, price: parsePrice(priceText), ts };
-      }).filter(r => r.name || r.price);
-    }
-
-    function buildImportedRecord(rec, sourceLabel) {
-      const base = readStateFromForm();
-      const price = rec.price || 0;
-      const typeLabel = rec.type === 'buy' ? 'покупка' : rec.type === 'sell' ? 'продажа' : 'импорт';
-      const buy = rec.type === 'sell' ? price : price;
-      const sell = rec.type === 'buy' ? price : price;
-      const st = { ...base, n: buy, x: sell, Q: 1 };
-      const calc = compute(st);
-      const ts = rec.ts || nowTs();
-      return {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2,8),
-        ts,
-        acqTs: ts,
-        unlockTs: null,
-        banned: false,
-        name: `${rec.name || '—'} (${sourceLabel}: ${typeLabel})`,
-        ...st,
-        completed: false,
-        ...calc,
-        importedFrom: sourceLabel
-      };
-    }
-
-    async function importFromClipboard(parseFn, sourceLabel) {
-      let html = '';
-      try {
-        html = await navigator.clipboard.readText();
-      } catch {
-        html = prompt('Вставь HTML страницы истории для импорта:') || '';
-      }
-      if (!html.trim()) return;
-      const records = parseFn(html);
-      if (!records.length) { alert('Не удалось найти записи. Проверь, что скопирован HTML страницы истории.'); return; }
-      const list = loadHistory();
-      let added = 0;
-      records.forEach((rec) => {
-        if (!rec.price) return;
-        list.push(buildImportedRecord(rec, sourceLabel));
-        added += 1;
-      });
-      saveHistory(list);
-      renderHistory();
-      alert(`Импортировано записей: ${added}`);
-    }
 
     function addToHistory() {
       const st = readStateFromForm();
@@ -1077,8 +957,6 @@ function toggleCompletedById(id) {
     exportJsonBtn.addEventListener('click', exportJson);
     importJsonBtn.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', importJson);
-    if (importMarketBtn) importMarketBtn.addEventListener('click', () => importFromClipboard(parseMarketHistory, 'Market.csgo.com'));
-    if (importCsMoneyBtn) importCsMoneyBtn.addEventListener('click', () => importFromClipboard(parseCsMoneyHistory, 'CS.MONEY'));
     document.getElementById('deleteSel').addEventListener('click', deleteSelected);
     document.getElementById('clearAll').addEventListener('click', clearAll);
 
