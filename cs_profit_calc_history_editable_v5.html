@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Калькулятор прибыли CS‑скинов — CS.MONEY → Market.CSGO</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #151922;
+      --panel-2: #1b2130;
+      --text: #eef2ff;
+      --muted: #a5b1d0;
+      --accent: #7aa2ff;
+      --ok: #50c878;
+      --bad: #ff6b6b;
+      --warn: #f7b955;
+      --border: #232b3d;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 16px;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #edf1ff;
+        --panel: #ffffff;
+        --panel-2: #f6f8ff;
+        --text: #0e1320;
+        --muted: #36415f;
+        --accent: #315efb;
+        --ok: #2c9c63;
+        --bad: #d94141;
+        --warn: #c07b00;
+        --border: #e6e9f7;
+        --shadow: 0 6px 18px rgba(26,45,88,.12);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Noto Sans', 'Helvetica Neue', Arial;
+      background: radial-gradient(1200px 800px at 10% -10%, rgba(88,114,255,.18), rgba(255,255,255,0) 60%),
+                  radial-gradient(1200px 800px at 90% 110%, rgba(111,255,208,.12), rgba(255,255,255,0) 60%), var(--bg);
+      color: var(--text);
+    }
+    .container { max-width: 1600px; margin: 40px auto; padding: 0 16px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 980px) { .grid { grid-template-columns: 1.1fr .9fr; gap: 20px; } }
+
+    .card { background: linear-gradient(180deg, var(--panel), var(--panel-2)); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .card h1, .card h2 { margin: 0; }
+    .head { padding: 16px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .head .title { display: flex; align-items: center; gap: 12px; }
+    .badge { font-size: 12px; padding: 6px 10px; border-radius: 999px; background: rgba(122,162,255,.15); color: var(--accent); border: 1px solid rgba(122,162,255,.35); }
+    .body { padding: 18px 22px; }
+
+    .tabs { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .tab { padding: 8px 12px; border-radius: 999px; border: 1px solid var(--border); background: rgba(255,255,255,.03); color: var(--text); text-decoration: none; }
+    .tab.active { background: linear-gradient(180deg, var(--accent), #5b84ff); color: #fff; border-color: transparent; }
+
+    .field { display: grid; grid-template-columns: 1fr 220px; gap: 12px; align-items: center; margin-bottom: 12px; }
+    .field label { color: var(--muted); font-size: 14px; }
+    .field .right { display: flex; align-items: center; gap: 8px; }
+    .input, .select, textarea { flex: 1 1 auto; width: 100%; padding: 12px 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,.02); color: var(--text); outline: none; }
+    .input:focus, .select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(122,162,255,.25); }
+    .suffix { color: var(--muted); font-size: 14px; }
+
+    .radio { display: flex; gap: 10px; flex-wrap: wrap; }
+    .radio label { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 999px; background: rgba(255,255,255,.02); cursor: pointer; }
+    .radio input { accent-color: var(--accent); }
+
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    button { padding: 11px 14px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,.04); color: var(--text); cursor: pointer; }
+    button.primary { background: linear-gradient(180deg, var(--accent), #5b84ff); border: none; color: white; }
+    button.ghost { background: transparent; }
+
+    .note { font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+    .results { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .stat { background: rgba(255,255,255,.03); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+    .stat .k { color: var(--muted); font-size: 13px; }
+    .stat .v { font-size: 20px; font-weight: 700; }
+    .stat.good .v { color: var(--ok); }
+    .stat.bad .v { color: var(--bad); }
+
+    .table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 12px; border: 1px solid var(--border);  table-layout: fixed; }
+    .table th, .table td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+    .table th { color: var(--muted); font-weight: 600; background: rgba(255,255,255,.02); }
+    .table tr:last-child td { border-bottom: none; }
+
+    details.settings { margin-top: 10px; border: 1px dashed var(--border); border-radius: 12px; padding: 10px 12px; }
+    details.settings summary { cursor: pointer; color: var(--muted); }
+
+    .footer { color: var(--muted); font-size: 12px; margin-top: 12px; }
+    .warn { color: var(--warn); font-weight: 600; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,.04); border: 1px solid var(--border); font-size: 12px; color: var(--muted); }
+
+    /* История */
+
+/* UX улучшения для Истории */
+#historyTable th, #historyTable td { vertical-align: top; }
+#historyTable .dt { white-space: nowrap; }
+#historyTable .name { white-space: normal; word-break: break-word; overflow: visible; text-overflow: clip; line-height: 1.25; }
+.row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.row-actions button { padding: 6px 10px; font-size: 12px; }
+.badge-done { background: rgba(80,200,120,.18); color: #50c878; border: 1px solid rgba(80,200,120,.45); border-radius: 8px; padding: 2px 8px; }
+.mini { padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,.03); color: var(--text); }
+.mini[type="number"] { width: 110px; }
+.mini[type="date"] { width: 160px; }
+
+/* Скрываем ненужные столбцы: Кол-во (5), Схема вывода (6), Прибыль / 1 (9) */
+#historyTable th:nth-child(5), #historyTable td:nth-child(5),
+#historyTable th:nth-child(6), #historyTable td:nth-child(6),
+#historyTable th:nth-child(9), #historyTable td:nth-child(9) { display: none; }
+
+/* Ширины для читабельности */
+#historyTable th:nth-child(2), #historyTable td.dt { width: 120px; }
+#historyTable th:nth-child(3), #historyTable td.name { width: 55%; }
+#historyTable th:last-child, #historyTable td:last-child { width: 260px; }
+
+    .history-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; align-items: center; }
+    .grow { flex: 1 1 auto; }
+    .checks { display: flex; align-items: center; gap: 10px; }
+    .totals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 10px 0 14px; }
+    .totals .stat .v { font-size: 18px; }
+    @media (max-width: 1000px) { .totals { grid-template-columns: 1fr 1fr; } }
+    .nowrap { white-space: nowrap; }
+    .row-actions { display: flex; gap: 8px; }
+    .badge-sm { font-size: 11px; padding: 2px 6px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+    .badge-ban { background: rgba(247, 185, 85, .18); color: #f7b955; border-color: rgba(247,185,85,.45); }
+    .badge-ok { background: rgba(80,200,120,.18); color: #50c878; border-color: rgba(80,200,120,.45); }
+
+    /* Тесты */
+    details.tests { margin-top: 14px; border: 1px dashed var(--border); border-radius: 12px; padding: 10px 12px; }
+    .test-pass { color: var(--ok); font-weight: 600; }
+    .test-fail { color: var(--bad); font-weight: 600; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 12.5px; }
+  
+/* ===== История: баланс ширин столбцов и читаемость ===== */
+#historyTable { table-layout: auto; } /* переопределяем fixed только для истории */
+#historyTable th, #historyTable td { vertical-align: top; }
+
+/* Ширины заголовков (nth-child по исходному порядку) */
+#historyTable th:nth-child(2) { width: 120px; }   /* Дата */
+#historyTable th:nth-child(3) { width: 36%; }     /* Название */
+#historyTable th:nth-child(4) { width: 160px; }   /* Статус */
+#historyTable th:nth-child(7) { width: 260px; }   /* Покупка → Продажа */
+#historyTable th:nth-child(8) { width: 220px; }   /* Комиссии */
+#historyTable th:nth-child(10) { width: 130px; }  /* Прибыль всего */
+#historyTable th:nth-child(11) { width: 90px; }   /* ROI */
+#historyTable th:nth-child(12) { width: 260px; }  /* Действия */
+
+/* Ячейки по классам (надёжнее) */
+#historyTable td.dt { width: 120px; white-space: nowrap; }
+#historyTable td.name { width: 36%; min-width: 420px; white-space: normal; word-break: break-word; overflow: visible; text-overflow: clip; line-height: 1.25; }
+#historyTable td.status { width: 160px; }
+#historyTable td.prices { width: 260px; white-space: normal; word-break: break-word; }
+#historyTable td.fees { width: 220px; white-space: normal; }
+#historyTable td.ptot { width: 130px; white-space: nowrap; }
+#historyTable td.roi { width: 90px; white-space: nowrap; }
+#historyTable td.row-actions { width: 260px; }
+
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="head">
+        <div class="title">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8.5 3.5h7a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.3"/><path d="M8 8h8M8 12h8M8 16h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          <h1>Калькулятор прибыли CS‑скинов</h1>
+        </div>
+        <div class="tabs" role="tablist">
+          <a href="#calc" class="tab" id="tab-calc" role="tab" aria-controls="panel-calc">Калькулятор</a>
+          <a href="#history" class="tab" id="tab-history" role="tab" aria-controls="panel-history">История продаж</a>
+          <span class="badge">CS.MONEY → Market.CSGO</span>
+        </div>
+      </div>
+      <div class="body">
+        <div id="panel-calc" role="tabpanel">
+          <div class="grid">
+            <!-- LEFT: INPUTS -->
+            <section aria-labelledby="inputs-h2">
+              <h2 id="inputs-h2" style="margin-bottom:10px">Исходные данные</h2>
+
+              <div class="field">
+                <label for="itemName">Название/пометка предмета</label>
+                <div class="right"><input id="itemName" class="input" placeholder="например, AK-47 | Redline (FT), наклейки, примечания" /></div>
+              </div>
+
+              <div class="field">
+                <label for="acqDate">Дата/время покупки</label>
+                <div class="right"><input id="acqDate" class="input" type="datetime-local" /></div>
+              </div>
+
+              <div class="field">
+                <label for="isBanned">Трейд-бан после покупки (7 дней)</label>
+                <div class="right"><input id="isBanned" type="checkbox" /> <span class="suffix">пометить как «в бане»</span></div>
+              </div>
+
+              <div class="field">
+                <label for="buyPrice">Цена покупки на CS.MONEY (₽)</label>
+                <div class="right"><input id="buyPrice" class="input" inputmode="decimal" placeholder="например, 15000" />
+                  <span class="suffix">₽</span></div>
+              </div>
+
+              <div class="field">
+                <label for="buyFee">Комиссия покупки, %</label>
+                <div class="right"><input id="buyFee" class="input" inputmode="decimal" value="5" />
+                  <span class="suffix">%</span></div>
+              </div>
+
+              <div class="field">
+                <label for="sellPrice">Цена продажи на Market.CSGO (₽)</label>
+                <div class="right"><input id="sellPrice" class="input" inputmode="decimal" placeholder="например, 17000" />
+                  <span class="suffix">₽</span></div>
+              </div>
+
+              <div class="field">
+                <label for="sellFee">Комиссия продажи, %</label>
+                <div class="right"><input id="sellFee" class="input" inputmode="decimal" value="5" />
+                  <span class="suffix">%</span></div>
+              </div>
+
+              <div class="field">
+                <label for="wdPct">Комиссия на вывод, %</label>
+                <div class="right"><input id="wdPct" class="input" inputmode="decimal" value="1" />
+                  <span class="suffix">%</span></div>
+              </div>
+
+              <div class="field">
+                <label for="wdFix">Фиксированная комиссия на вывод (₽)</label>
+                <div class="right"><input id="wdFix" class="input" inputmode="decimal" value="50" />
+                  <span class="suffix">₽</span></div>
+              </div>
+
+              <div class="field">
+                <label for="qty">Количество предметов</label>
+                <div class="right"><input id="qty" class="input" inputmode="numeric" value="1" />
+                  <span class="suffix">шт</span></div>
+              </div>
+
+              <div class="field">
+                <label>Схема вывода средств</label>
+                <div class="right radio">
+                  <label><input type="radio" name="payout" value="single" checked /> единым платежом</label>
+                  <label><input type="radio" name="payout" value="peritem" /> отдельно по каждому предмету</label>
+                </div>
+              </div>
+
+              <details class="settings">
+                <summary>Дополнительно: желаемая доходность, % (опционально) ▾</summary>
+                <div class="field" style="margin-top:10px">
+                  <label for="targetRoi">Желаемая доходность к себестоимости, %</label>
+                  <div class="right"><input id="targetRoi" class="input" inputmode="decimal" placeholder="например, 10" />
+                    <span class="suffix">%</span></div>
+                </div>
+              </details>
+
+              <div class="actions">
+                <button class="primary" id="calcBtn">Рассчитать</button>
+                <button id="addBtn">Добавить в историю</button>
+                <button id="resetBtn" class="ghost">Сброс</button>
+                <button id="shareBtn" title="Скопировать ссылку с параметрами">Ссылка с параметрами</button>
+                <span class="pill" id="savedHint" hidden>Значения сохраняются в браузере</span>
+              </div>
+              <div class="note">Комиссии и схема расчёта можно менять. При включённой галочке «Трейд-бан» запись попадёт в историю как заблокированная на 7 дней (покажем дату разбана).</div>
+            </section>
+
+            <!-- RIGHT: RESULTS -->
+            <section aria-labelledby="results-h2">
+              <h2 id="results-h2" style="margin-bottom:10px">Результат и разбор</h2>
+
+              <div class="results" id="results">
+                <div class="stat"><div class="k">Итого прибыль</div><div class="v" id="profitTotal">—</div></div>
+                <div class="stat"><div class="k">Прибыль на 1 предмет</div><div class="v" id="profitEach">—</div></div>
+                <div class="stat"><div class="k">Доходность к себестоимости (ROI)</div><div class="v" id="roi">—</div></div>
+                <div class="stat"><div class="k">Минимальная цена продажи (безубыток)</div><div class="v" id="breakeven">—</div></div>
+              </div>
+
+              <table class="table" style="margin-top:14px">
+                <thead>
+                  <tr>
+                    <th>Показатель</th>
+                    <th>На 1 предмет</th>
+                    <th>Всего</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Себестоимость покупки (с комиссией)</td>
+                    <td id="costEach">—</td>
+                    <td id="costTotal">—</td>
+                  </tr>
+                  <tr>
+                    <td>После продажи (минус комиссия продажи)</td>
+                    <td id="afterSellEach">—</td>
+                    <td id="afterSellTotal">—</td>
+                  </tr>
+                  <tr>
+                    <td>После вывода (минус % и фикс.)</td>
+                    <td id="afterWdEach">—</td>
+                    <td id="afterWdTotal">—</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <table class="table" style="margin-top:12px">
+                <thead>
+                  <tr>
+                    <th>Целевой ROI</th>
+                    <th>Требуемая цена продажи</th>
+                  </tr>
+                </thead>
+                <tbody id="roiTargets">
+                  <tr><td>0% (безубыток)</td><td id="roi0">—</td></tr>
+                  <tr><td>5%</td><td id="roi5">—</td></tr>
+                  <tr><td>10%</td><td id="roi10">—</td></tr>
+                  <tr><td>20%</td><td id="roi20">—</td></tr>
+                  <tr><td id="customRoiLabel">Своя цель</td><td id="roiCustom">—</td></tr>
+                </tbody>
+              </table>
+
+              <div class="footer">
+                Формулы учитывают: покупка на CS.MONEY с комиссией покупки, продажа на Market.CSGO с комиссией продажи, затем вывод с комиссией <strong>%</strong> и фиксированной суммой. Для «единого платежа» фиксированная комиссия на вывод делится на количество предметов; для «отдельно по каждому» — списывается с каждого предмета.
+                <div class="note warn" id="warnBox" hidden></div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <!-- История продаж -->
+        <div id="panel-history" role="tabpanel" hidden>
+          <h2 style="margin:0 0 10px">История продаж</h2>
+
+          <div class="history-toolbar">
+            <input id="search" class="input grow" placeholder="Поиск по названию/пометкам" />
+            <div class="checks">
+              <label><input type="checkbox" id="toggleSelect" /> Выделить всё</label>
+            </div>
+            <button id="exportCsv">Экспорт CSV</button>
+            <button id="exportJson">Экспорт JSON</button>
+            <button id="importJson">Импорт JSON</button>
+            <input id="fileInput" type="file" accept="application/json" style="display:none" />
+            <button id="deleteSel">Удалить выбранные</button>
+            <button id="clearAll" class="ghost">Очистить всё</button>
+          </div>
+
+          <div class="totals" id="totalsBox">
+            <div class="stat"><div class="k">Себестоимость (всего)</div><div class="v" id="tCost">—</div></div>
+            <div class="stat"><div class="k">Получено после вывода (факт, без бана)</div><div class="v" id="tAfterWdActual">—</div></div>
+            <div class="stat"><div class="k">Прибыль фактическая (без бана)</div><div class="v" id="tProfitActual">—</div></div>
+            <div class="stat"><div class="k">Потенциальная прибыль (в бане)</div><div class="v" id="tProfitPotential">—</div></div>
+            <div class="stat"><div class="k">ROI по факту</div><div class="v" id="tRoiActual">—</div></div>
+          </div>
+
+          <table class="table" id="historyTable">
+            <thead>
+              <tr>
+                <th><span class="nowrap">Выб.</span></th>
+                <th>Дата</th>
+                <th>Название / пометки</th>
+                <th>Статус</th>
+                <th>Кол-во</th>
+                <th>Схема вывода</th>
+                <th>Покупка → Продажа</th>
+                <th>Комиссии</th>
+                <th>Прибыль / 1</th>
+                <th>Прибыль всего</th>
+                <th>ROI</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody">
+              <tr><td colspan="12" style="text-align:center;color:var(--muted)">Пока нет записей</td></tr>
+            </tbody>
+          </table>
+
+          <div class="note">Подсказка: добавляй сделки из вкладки «Калькулятор». «Трейд-бан» учитывается 7 дней с даты покупки — до разблокировки прибыль считается потенциальной и не попадает в фактические итоги. Данные хранятся локально (в твоём браузере); сделай экспорт JSON для резервной копии.</div>
+
+          <details class="tests">
+            <summary>Автотесты ▾</summary>
+            <div class="mono" id="testLog">—</div>
+            <div class="actions" style="margin-top:10px"><button id="runTests">Запустить тесты</button></div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <template id="rowTpl">
+    <tr>
+      <td><input type="checkbox" class="sel" /></td>
+      <td class="nowrap dt"></td>
+      <td class="name"></td>
+      <td class="status"></td>
+      <td class="qty"></td>
+      <td class="payout"></td>
+      <td class="prices"></td>
+      <td class="fees"></td>
+      <td class="p1"></td>
+      <td class="ptot"></td>
+      <td class="roi"></td>
+      <td class="row-actions">
+        <button class="ghost edit">Ред.</button>
+        <button class="ghost toggleBan">Снять бан</button>
+        <button class="ghost complete">Завершена</button>
+        <button class="ghost del">Удалить</button>
+        <button class="ghost tocalc">В калькулятор</button>
+      </td>
+    </tr>
+  </template>
+
+  <script>
+    // ——— Утилиты ———
+    const fmtRUB = new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 });
+    const asNum = (el) => { const v = (typeof el === 'string' ? el : el.value || '').toString().trim().replace(',', '.'); const n = parseFloat(v); return isFinite(n) ? n : 0; };
+    const E = (id) => document.getElementById(id);
+    const nowTs = () => Date.now();
+    const dayMs = 86400000;
+
+    // ——— Ссылки на элементы калькулятора ———
+    const itemName = E('itemName');
+    const acqDate  = E('acqDate');
+    const isBanned = E('isBanned');
+    const buyPrice = E('buyPrice');
+    const buyFee   = E('buyFee');
+    const sellPrice= E('sellPrice');
+    const sellFee  = E('sellFee');
+    const wdPct    = E('wdPct');
+    const wdFix    = E('wdFix');
+    const qty      = E('qty');
+    const targetRoi= E('targetRoi');
+
+    const profitTotalEl = E('profitTotal');
+    const profitEachEl  = E('profitEach');
+    const roiEl         = E('roi');
+    const breakevenEl   = E('breakeven');
+
+    const costEachEl    = E('costEach');
+    const costTotalEl   = E('costTotal');
+    const afterSellEachEl=E('afterSellEach');
+    const afterSellTotalEl=E('afterSellTotal');
+    const afterWdEachEl = E('afterWdEach');
+    const afterWdTotalEl= E('afterWdTotal');
+
+    const roi0 = E('roi0');
+    const roi5 = E('roi5');
+    const roi10= E('roi10');
+    const roi20= E('roi20');
+    const roiCustom= E('roiCustom');
+    const customRoiLabel = E('customRoiLabel');
+
+    const warnBox = E('warnBox');
+    const savedHint = E('savedHint');
+
+    // ——— Секция Истории ———
+    const search = E('search');
+    const historyBody = E('historyBody');
+    const toggleSelect = E('toggleSelect');
+    const exportCsvBtn = E('exportCsv');
+    const exportJsonBtn = E('exportJson');
+    const importJsonBtn = E('importJson');
+    const fileInput = E('fileInput');
+
+    const tCost = E('tCost');
+    const tAfterWdActual = E('tAfterWdActual');
+    const tProfitActual = E('tProfitActual');
+    const tProfitPotential = E('tProfitPotential');
+    const tRoiActual = E('tRoiActual');
+
+    // ——— Табы (вкладки) ———
+    const tabCalc = E('tab-calc');
+    const tabHistory = E('tab-history');
+    const panelCalc = E('panel-calc');
+    const panelHistory = E('panel-history');
+
+    function applyTabFromHash() {
+      const h = (location.hash || '#calc').replace('#','');
+      const isCalc = h !== 'history';
+      [tabCalc, tabHistory].forEach(t => t.classList.remove('active'));
+      tabCalc.classList.toggle('active', isCalc);
+      tabHistory.classList.toggle('active', !isCalc);
+      panelCalc.hidden = !isCalc;
+      panelHistory.hidden = isCalc;
+      if (!isCalc) renderHistory();
+    }
+    window.addEventListener('hashchange', applyTabFromHash);
+
+    // ——— Параметры URL ↔ форма ———
+    const paramsToForm = () => {
+      const p = new URLSearchParams(location.search);
+      const set = (el, key) => { if (p.has(key)) el.value = p.get(key); };
+      set(itemName,'nm'); set(buyPrice,'bp'); set(buyFee,'bf'); set(sellPrice,'sp'); set(sellFee,'sf'); set(wdPct,'wp'); set(wdFix,'wf'); set(qty,'q'); set(targetRoi,'tr'); set(acqDate,'ad');
+      if (p.has('tb')) isBanned.checked = p.get('tb') === '1';
+      const payout = p.get('po');
+      if (payout === 'peritem' || payout === 'single') {
+        const r = document.querySelector(`input[name="payout"][value="${payout}"]`);
+        if (r) r.checked = true;
+      }
+    };
+    const formToParams = () => {
+      const p = new URLSearchParams();
+      const val = (el) => (el.value || '').trim();
+      p.set('nm', val(itemName)); p.set('bp', val(buyPrice)); p.set('bf', val(buyFee)); p.set('sp', val(sellPrice)); p.set('sf', val(sellFee)); p.set('wp', val(wdPct)); p.set('wf', val(wdFix)); p.set('q', val(qty));
+      if (val(targetRoi)) p.set('tr', val(targetRoi));
+      if (val(acqDate)) p.set('ad', val(acqDate));
+      if (isBanned.checked) p.set('tb', '1');
+      const payout = document.querySelector('input[name="payout"]:checked')?.value || 'single';
+      p.set('po', payout);
+      return p.toString();
+    };
+
+    // ——— Локальное сохранение формы ———
+    const loadLocal = () => {
+      try { const raw = localStorage.getItem('cs_profit_calc'); if (!raw) return; const d = JSON.parse(raw);
+        [itemName,buyPrice,buyFee,sellPrice,sellFee,wdPct,wdFix,qty,targetRoi,acqDate].forEach((el) => { const key = el.id; if (d[key] != null) el.value = d[key]; });
+        if (d.isBanned) isBanned.checked = !!d.isBanned;
+        if (d.payout) { const r = document.querySelector(`input[name="payout"][value="${d.payout}"]`); if (r) r.checked = true; }
+        savedHint.hidden = false;
+      } catch {}
+    };
+    const saveLocal = () => {
+      const d = { itemName: itemName.value, acqDate: acqDate.value, isBanned: isBanned.checked, buyPrice: buyPrice.value, buyFee: buyFee.value, sellPrice: sellPrice.value, sellFee: sellFee.value, wdPct: wdPct.value, wdFix: wdFix.value, qty: qty.value, targetRoi: targetRoi.value, payout: document.querySelector('input[name="payout"]:checked')?.value };
+      try { localStorage.setItem('cs_profit_calc', JSON.stringify(d)); } catch {}
+    };
+
+    // ——— Расчёт ———
+    function compute(state) {
+      const { n, pc, x, sc, wp, wf, Q, payout } = state;
+      const costEach = n * (1 + pc);
+      const costTotal = costEach * Q;
+      const afterSellEach = x * (1 - sc);
+      const afterSellTotal = afterSellEach * Q;
+      let afterWdTotal, afterWdEach;
+      if (payout === 'single') {
+        afterWdTotal = afterSellTotal * (1 - wp) - wf;
+        afterWdEach = afterWdTotal / Q;
+      } else {
+        afterWdEach = afterSellEach * (1 - wp) - wf;
+        afterWdTotal = afterWdEach * Q;
+      }
+      const profitTotal = afterWdTotal - costTotal;
+      const profitEach  = profitTotal / Q;
+      const roi = profitTotal / costTotal;
+      const denom = (1 - sc) * (1 - wp);
+      const beEach = (payout === 'single') ? (costEach + wf / Q) / denom : (costEach + wf) / denom;
+      const priceForROI = (r) => (payout === 'single') ? (costEach * (1 + r) + (wf / Q)) / denom : (costEach * (1 + r) + wf) / denom;
+      return { costEach,costTotal,afterSellEach,afterSellTotal,afterWdEach,afterWdTotal,profitEach,profitTotal,roi,beEach,priceForROI };
+    }
+
+    function readStateFromForm() {
+      const n = asNum(buyPrice);
+      const pc = asNum(buyFee)/100;
+      const x = asNum(sellPrice);
+      const sc = asNum(sellFee)/100;
+      const wp = asNum(wdPct)/100;
+      const wf = asNum(wdFix);
+      const Q  = Math.max(1, Math.floor(asNum(qty)) || 1);
+      qty.value = Q;
+      const payout = document.querySelector('input[name="payout"]:checked')?.value || 'single';
+      return { n, pc, x, sc, wp, wf, Q, payout };
+    }
+
+    function calculate() {
+      warnBox.hidden = true; warnBox.textContent = '';
+      const st = readStateFromForm();
+      if (st.n <= 0 || st.x <= 0) { warnBox.hidden = false; warnBox.textContent = 'Введите положительные значения цены покупки и цены продажи.'; }
+      const r = compute(st);
+
+      profitTotalEl.textContent = fmtRUB.format(r.profitTotal);
+      profitEachEl.textContent  = fmtRUB.format(r.profitEach);
+      roiEl.textContent         = isFinite(r.roi) ? (r.roi*100).toFixed(2) + ' %' : '—';
+      breakevenEl.textContent   = fmtRUB.format(r.beEach);
+
+      costEachEl.textContent    = fmtRUB.format(r.costEach);
+      costTotalEl.textContent   = fmtRUB.format(r.costTotal);
+      afterSellEachEl.textContent=fmtRUB.format(r.afterSellEach);
+      afterSellTotalEl.textContent=fmtRUB.format(r.afterSellTotal);
+      afterWdEachEl.textContent = fmtRUB.format(r.afterWdEach);
+      afterWdTotalEl.textContent= fmtRUB.format(r.afterWdTotal);
+
+      roi0.textContent  = fmtRUB.format(r.priceForROI(0));
+      roi5.textContent  = fmtRUB.format(r.priceForROI(0.05));
+      roi10.textContent = fmtRUB.format(r.priceForROI(0.10));
+      roi20.textContent = fmtRUB.format(r.priceForROI(0.20));
+
+      const tr = asNum(targetRoi);
+      customRoiLabel.textContent = isFinite(tr) && tr !== 0 ? `Своя цель (${tr}% к себестоимости)` : 'Своя цель';
+      roiCustom.textContent = isFinite(tr) && tr !== 0 ? fmtRUB.format(r.priceForROI(tr/100)) : '—';
+
+      const wrap = document.getElementById('results');
+      wrap.querySelectorAll('.stat').forEach(s => { s.classList.remove('good','bad'); });
+      if (isFinite(r.profitTotal)) {
+        const tone = r.profitTotal > 0 ? 'good' : (r.profitTotal < 0 ? 'bad' : '');
+        if (tone) wrap.querySelectorAll('.stat').forEach(s => s.classList.add(tone));
+      }
+
+      saveLocal();
+      return r;
+    }
+
+    // ——— Сброс / Шэринг ———
+    function resetForm() {
+      itemName.value='';
+      // Дата по умолчанию — сейчас в локали пользователя
+      acqDate.value = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+      isBanned.checked=false;
+      buyPrice.value=''; sellPrice.value=''; qty.value='1'; targetRoi.value='';
+      buyFee.value='5'; sellFee.value='5'; wdPct.value='1'; wdFix.value='50';
+      document.querySelector('input[name="payout"][value="single"]').checked = true;
+      history.replaceState({}, '', location.pathname + location.hash);
+      calculate();
+    }
+    function shareLink() {
+      const qs = formToParams();
+      const url = location.origin + location.pathname + '?' + qs + (location.hash || '');
+      navigator.clipboard.writeText(url).then(() => {
+        const btn = document.getElementById('shareBtn');
+        const old = btn.textContent; btn.textContent = 'Ссылка скопирована';
+        setTimeout(() => btn.textContent = old, 1500);
+      }).catch(() => { alert('Не удалось скопировать ссылку. Скопируйте вручную: '+url); });
+    }
+
+    // ——— История ———
+    const HISTORY_KEY = 'cs_profit_history_v3';
+    function loadHistory() {
+      try {
+        const rawV3 = localStorage.getItem(HISTORY_KEY);
+        if (rawV3) return JSON.parse(rawV3);
+        const rawV2 = localStorage.getItem('cs_profit_history_v2');
+        if (rawV2) return JSON.parse(rawV2);
+        return [];
+      } catch { return []; }
+    }
+    function saveHistory(arr) { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); } catch {} }
+
+    function addToHistory() {
+      const st = readStateFromForm();
+      if (st.n <= 0 || st.x <= 0) { alert('Сначала укажи цены покупки и продажи.'); return; }
+      const r = compute(st);
+      const acq = acqDate.value ? Date.parse(acqDate.value) : nowTs();
+      const banned = !!isBanned.checked;
+      const unlockTs = banned ? (acq + 7*dayMs) : null;
+      const rec = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2,8),
+        ts: nowTs(),
+        acqTs: acq,
+        unlockTs,
+        banned,
+        name: (itemName.value || '').trim(),
+        ...st,
+        completed: false,
+        ...r
+      };
+      const list = loadHistory();
+      list.push(rec); saveHistory(list);
+      location.hash = '#history';
+      setTimeout(() => { alert('Сделка добавлена в историю.'); }, 50);
+    }
+
+    function daysLeft(unlockTs) {
+      const d = Math.ceil((unlockTs - nowTs())/dayMs); return d > 0 ? d : 0;
+    }
+
+    function renderHistory() {
+      const q = (search.value || '').toLowerCase();
+      const list = loadHistory().slice().sort((a,b) => b.ts - a.ts);
+      const filtered = q ? list.filter(r => (r.name||'').toLowerCase().includes(q)) : list;
+
+      historyBody.innerHTML = '';
+      if (filtered.length === 0) {
+        const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 12; td.style.textAlign='center'; td.style.color='var(--muted)'; td.textContent = 'Пока нет записей'; tr.appendChild(td); historyBody.appendChild(tr);
+        updateTotals([]); return;
+      }
+
+      const tpl = document.getElementById('rowTpl');
+      filtered.forEach((r) => {
+        const node = tpl.content.cloneNode(true);
+        const row = node.querySelector('tr');
+        row.dataset.id = r.id;
+        row.querySelector('.dt').textContent = new Date(r.ts).toLocaleDateString('ru-RU');
+        const ncell = row.querySelector('.name'); ncell.textContent = r.name || '—'; ncell.title = r.name || '—';
+        // Статус
+        const st = row.querySelector('.status');
+        if (r.completed) {
+          st.innerHTML = `<span class=\"badge-sm badge-done\">Завершена</span>` + (r.banned ? ' <span class=\"badge-sm badge-ban\">BAN</span>' : '');
+        } else if (r.banned) {
+          const until = r.unlockTs ? new Date(r.unlockTs).toLocaleString('ru-RU') : 'неизвестно';
+          const left = r.unlockTs ? ` (осталось ${daysLeft(r.unlockTs)} дн.)` : '';
+          st.innerHTML = `<span class=\"badge-sm badge-ban\">TRADE BAN до ${until}${left}</span>`;
+        } else {
+          st.innerHTML = `<span class=\"badge-sm badge-ok\">без бана</span>`;
+        }
+        row.querySelector('.qty').textContent = r.Q;
+        row.querySelector('.payout').innerHTML = r.payout === 'single' ? '<span class="badge-sm">единый платёж</span>' : '<span class="badge-sm">по каждому</span>';
+        row.querySelector('.prices').innerHTML = `Покупка: ${fmtRUB.format(r.n)} → Продажа: ${fmtRUB.format(r.x)}`;
+        row.querySelector('.fees').innerHTML = `покупка ${ (r.pc*100).toFixed(1) }% · продажа ${ (r.sc*100).toFixed(1) }% · вывод ${ (r.wp*100).toFixed(1) }% + ${fmtRUB.format(r.wf)}`;
+        row.querySelector('.p1').textContent = fmtRUB.format(r.profitEach);
+        row.querySelector('.ptot').textContent = fmtRUB.format(r.profitTotal);
+        row.querySelector('.roi').textContent = isFinite(r.roi) ? (r.roi*100).toFixed(2) + ' %' : '—';
+        // Кнопки
+        const toggleBtn = row.querySelector('.toggleBan');
+toggleBtn.textContent = r.banned ? 'Снять бан' : 'Поставить бан';
+toggleBtn.addEventListener('click', () => { toggleBanById(r.id); });
+const editBtn = row.querySelector('.edit'); if (editBtn) editBtn.addEventListener('click', () => { enterEdit(r.id); });
+const compBtn = row.querySelector('.complete'); if (compBtn) { compBtn.textContent = r.completed ? 'Снять завершение' : 'Завершена'; compBtn.addEventListener('click', () => { toggleCompletedById(r.id); }); }
+row.querySelector('.del').addEventListener('click', () => { deleteById(r.id); });
+row.querySelector('.tocalc').addEventListener('click', () => { loadToCalc(r); });
+        historyBody.appendChild(node);
+      });
+
+      historyBody.querySelectorAll('input.sel').forEach(ch => ch.addEventListener('change', updateTotals));
+      toggleSelect.checked = false;
+      updateTotals();
+    }
+
+    function getSelectedIds() { return Array.from(historyBody.querySelectorAll('input.sel:checked')).map(ch => ch.closest('tr').dataset.id); }
+
+    function updateTotals() {
+      const ids = getSelectedIds();
+      const list = loadHistory();
+      const used = ids.length ? list.filter(r => ids.includes(r.id)) : list;
+      const sum = (arr, k) => arr.reduce((a,b) => a + (b[k]||0), 0);
+      const cost = sum(used, 'costTotal');
+      const afterWdActual = sum(used.filter(r => !r.banned), 'afterWdTotal');
+      const profitActual = sum(used.filter(r => !r.banned), 'profitTotal');
+      const profitPotential = sum(used.filter(r => r.banned), 'profitTotal');
+      tCost.textContent = fmtRUB.format(cost);
+      tAfterWdActual.textContent = fmtRUB.format(afterWdActual);
+      tProfitActual.textContent = fmtRUB.format(profitActual);
+      tProfitPotential.textContent = fmtRUB.format(profitPotential);
+      tRoiActual.textContent = cost > 0 ? ((profitActual / cost) * 100).toFixed(2) + ' %' : '—';
+    }
+
+    function deleteById(id) {
+      if (!confirm('Удалить запись?')) return;
+      const list = loadHistory();
+      const next = list.filter(r => r.id !== id);
+      saveHistory(next); renderHistory();
+    }
+    function deleteSelected() {
+      const ids = getSelectedIds(); if (!ids.length) { alert('Не выбрано ни одной записи.'); return; }
+      if (!confirm('Удалить выбранные записи?')) return;
+      const list = loadHistory();
+      saveHistory(list.filter(r => !ids.includes(r.id))); renderHistory();
+    }
+    function clearAll() { if (!confirm('Очистить всю историю?')) return; saveHistory([]); renderHistory(); }
+
+    function toggleBanById(id) {
+      const list = loadHistory();
+      const idx = list.findIndex(r => r.id === id);
+      if (idx === -1) return;
+      const r = list[idx];
+      const now = nowTs();
+      if (r.banned) {
+        // Снимаем бан
+        r.banned = false; r.unlockTs = null;
+      } else {
+        // Ставим бан заново: от текущего момента 7 дней (если нет acqTs — ставим текущий)
+        const acq = r.acqTs || now; r.acqTs = acq; r.banned = true; r.unlockTs = acq + 7*dayMs;
+      }
+      list[idx] = r; saveHistory(list); renderHistory();
+    }
+
+    function loadToCalc(r) {
+      itemName.value = r.name || '';
+      buyPrice.value = r.n; buyFee.value = (r.pc*100).toString();
+      sellPrice.value = r.x; sellFee.value = (r.sc*100).toString();
+      wdPct.value = (r.wp*100).toString(); wdFix.value = r.wf.toString();
+      qty.value = r.Q.toString();
+      document.querySelector(`input[name="payout"][value="${r.payout}"]`).checked = true;
+      acqDate.value = r.acqTs ? new Date(r.acqTs - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16) : '';
+      isBanned.checked = !!r.banned;
+      location.hash = '#calc'; calculate();
+    }
+
+    
+// ——— Редактирование строки в Истории ———
+function toLocalDateValue(ts) {
+  try {
+    const d = new Date(ts); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  } catch { return ''; }
+}
+
+function enterEdit(id) {
+  const row = historyBody.querySelector(`tr[data-id="${id}"]`);
+  const list = loadHistory();
+  const r = list.find(x => x.id === id);
+  if (!row || !r) return;
+
+  // Дата продажи
+  const dtCell = row.querySelector('.dt');
+  dtCell.innerHTML = `<input type="date" class="mini in-dt" value="${toLocalDateValue(r.ts)}" />`;
+
+  // Цены
+  const pr = row.querySelector('.prices');
+  pr.innerHTML = `Покупка: <input class="mini in-buy" type="number" step="0.01" value="${(r.n||0)}"> → Продажа: <input class="mini in-sell" type="number" step="0.01" value="${(r.x||0)}">`;
+
+  // Статус
+  const st = row.querySelector('.status');
+  const ch = r.completed ? 'checked' : '';
+  if (r.banned) {
+    st.innerHTML = `<label class="badge-sm"><input type="checkbox" class="in-completed" ${ch}> Завершена</label> <span class="badge-sm badge-ban">BAN</span>`;
+  } else {
+    st.innerHTML = `<label class="badge-sm"><input type="checkbox" class="in-completed" ${ch}> Завершена</label>`;
+  }
+
+  // Кнопки
+  const act = row.querySelector('.row-actions');
+  act.innerHTML = `<button class="primary save">Сохранить</button><button class="ghost cancel">Отмена</button>`;
+  act.querySelector('.save').addEventListener('click', () => saveEdit(id));
+  act.querySelector('.cancel').addEventListener('click', () => renderHistory());
+}
+
+function saveEdit(id) {
+  const list = loadHistory();
+  const idx = list.findIndex(x => x.id === id);
+  if (idx === -1) return;
+  const row = historyBody.querySelector(`tr[data-id="${id}"]`);
+  const r = list[idx];
+
+  const inBuy = row.querySelector('.in-buy');
+  const inSell = row.querySelector('.in-sell');
+  const inDt   = row.querySelector('.in-dt');
+  const inCompleted = row.querySelector('.in-completed');
+
+  const newBuy = asNum(inBuy);
+  const newSell = asNum(inSell);
+  if (newBuy > 0) r.n = newBuy;
+  if (newSell > 0) r.x = newSell;
+  if (inDt && inDt.value) { try { r.ts = new Date(inDt.value + 'T00:00:00').getTime(); } catch(e){} }
+  r.completed = !!(inCompleted && inCompleted.checked);
+
+  // Пересчет
+  const recalc = compute({ n: r.n, pc: r.pc, x: r.x, sc: r.sc, wp: r.wp, wf: r.wf, Q: r.Q, payout: r.payout });
+  Object.assign(r, recalc);
+  list[idx] = r; saveHistory(list); renderHistory();
+}
+
+function toggleCompletedById(id) {
+  const list = loadHistory();
+  const i = list.findIndex(r => r.id === id);
+  if (i === -1) return;
+  list[i].completed = !list[i].completed;
+  saveHistory(list); renderHistory();
+}
+// ——— Экспорт/Импорт ———
+    function exportCsv() {
+      const ids = getSelectedIds();
+      const list = loadHistory().sort((a,b) => b.ts - a.ts);
+      const used = ids.length ? list.filter(r => ids.includes(r.id)) : list;
+      const cols = ['Дата','Название','Кол-во','Схема','Покупка','Комиссия покупки %','Продажа','Комиссия продажи %','Вывод %','Вывод фикс','Себестоимость','После вывода','Прибыль всего','ROI %','Статус','Разбан до'];
+      const escape = (s) => '"' + String(s).replace(/"/g,'""') + '"';
+      const rows = used.map(r => [
+        new Date(r.ts).toLocaleString('ru-RU'), r.name||'', r.Q, (r.payout==='single'?'единый':'по каждому'), r.n, (r.pc*100).toFixed(2), r.x, (r.sc*100).toFixed(2), (r.wp*100).toFixed(2), r.wf,
+        r.costTotal.toFixed(2), r.afterWdTotal.toFixed(2), r.profitTotal.toFixed(2), (r.roi*100).toFixed(2), (r.completed?'DONE':(r.banned?'BAN':'OK')), r.unlockTs? new Date(r.unlockTs).toLocaleString('ru-RU'):''
+      ]);
+      const csv = [cols, ...rows].map(r => r.map(escape).join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'cs_profit_history.csv'; a.click(); URL.revokeObjectURL(a.href);
+    }
+
+    function exportJson() {
+      const list = loadHistory();
+      const blob = new Blob([JSON.stringify(list,null,2)], {type:'application/json'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'cs_profit_history.json'; a.click(); URL.revokeObjectURL(a.href);
+    }
+
+    function importJson(evt) {
+      const file = evt.target.files && evt.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(reader.result);
+          if (!Array.isArray(data)) throw new Error('Некорректный формат файла');
+          saveHistory(data); renderHistory();
+          alert('Импорт завершён');
+        } catch (e) { alert('Ошибка импорта: ' + e.message); }
+      };
+      reader.readAsText(file, 'utf-8');
+    }
+
+    // ——— Тесты ———
+    function approx(a,b,eps=0.02){ return Math.abs(a-b) <= eps; }
+    function runTests() {
+      const log = [];
+      const push = (name, pass, exp, got) => log.push(`${pass? '✅':'❌'} ${name}: ожидается ${exp}, получено ${got}`);
+
+      // Базовые комиссии
+      const pc=0.05, sc=0.05, wp=0.01, wf=50;
+      const mk = (n,x,Q,payout) => compute({ n, pc, x, sc, wp, wf, Q, payout });
+
+      // Тест 1: Q=1, payout=single
+      let r = mk(1000, 1200, 1, 'single');
+      push('T1 прибыль всего', approx(r.profitTotal, 28.6, 0.1), '≈28.60', r.profitTotal.toFixed(2));
+      push('T1 безубыток цена', approx(r.beEach, 1169.5906, 0.2), '≈1169.59', r.beEach.toFixed(2));
+
+      // Тест 2: Q=10, payout=single
+      r = mk(1000, 1200, 10, 'single');
+      push('T2 прибыль всего (единый)', approx(r.profitTotal, 736.0, 0.5), '≈736.00', r.profitTotal.toFixed(2));
+      push('T2 безубыток/шт', approx(r.beEach, 1122.6252, 0.2), '≈1122.63', r.beEach.toFixed(2));
+
+      // Тест 3: Q=10, payout=peritem
+      r = mk(1000, 1200, 10, 'peritem');
+      push('T3 прибыль всего (по каждому)', approx(r.profitTotal, 286.0, 0.5), '≈286.00', r.profitTotal.toFixed(2));
+      push('T3 безубыток/шт (по каждому)', approx(r.beEach, 1169.5906, 0.2), '≈1169.59', r.beEach.toFixed(2));
+
+      // Тест 4: Целевая цена для ROI=10% при Q=10, payout=single
+      r = mk(1000, 1200, 10, 'single');
+      const target10 = r.priceForROI(0.10);
+      push('T4 цена продажи для ROI=10%', approx(target10, 1233.91, 0.5), '≈1233.91', target10.toFixed(2));
+
+      // Тест 5: Учёт бана в итогах (факт vs потенциал)
+      const recOk = { ...mk(1000,1200,1,'single'), Q:1, costTotal: mk(1000,1200,1,'single').costTotal, afterWdTotal: mk(1000,1200,1,'single').afterWdTotal, profitTotal: mk(1000,1200,1,'single').profitTotal, banned:false };
+      const recBan= { ...mk(1000,1200,1,'single'), Q:1, costTotal: mk(1000,1200,1,'single').costTotal, afterWdTotal: mk(1000,1200,1,'single').afterWdTotal, profitTotal: mk(1000,1200,1,'single').profitTotal, banned:true };
+      const costT = recOk.costTotal + recBan.costTotal;
+      const profitActualT = recOk.profitTotal;
+      const profitPotentialT = recBan.profitTotal;
+      push('T5 ROI факт по портфелю', approx((profitActualT/costT)*100, (recOk.profitTotal/costT)*100, 0.5), '≈верное', ((profitActualT/costT)*100).toFixed(2));
+
+      // Тест 6: 7-дневный срок
+      const acq = nowTs();
+      const unlock = acq + 7*dayMs;
+      const left = Math.ceil((unlock - acq)/dayMs);
+      push('T6 дни до разбана', left === 7, '7', String(left));
+
+      // Доп. тест 7: безубыток для Q=1 одинаков в режимах single/peritem
+      const rS = mk(1000,1200,1,'single');
+      const rP = mk(1000,1200,1,'peritem');
+      push('T7 безубыток равен при Q=1', approx(rS.beEach, rP.beEach, 0.001), 'равны', `${rS.beEach.toFixed(4)} vs ${rP.beEach.toFixed(4)}`);
+
+      // Доп. тест 8: прибыль отрицательна ниже безубытка
+      const b = rS.beEach - 10;
+      const rNeg = mk(1000,b,1,'single');
+      push('T8 прибыль ниже безубытка', rNeg.profitTotal < 0, '< 0', rNeg.profitTotal.toFixed(2));
+
+      const out = log.join('\n'); const el = E('testLog'); if (el) el.textContent = out; console.log(out);
+    }
+
+    // ——— Слушатели ———
+    document.getElementById('calcBtn').addEventListener('click', (e) => { e.preventDefault(); calculate(); });
+    document.getElementById('resetBtn').addEventListener('click', (e) => { e.preventDefault(); resetForm(); });
+    document.getElementById('shareBtn').addEventListener('click', (e) => { e.preventDefault(); shareLink(); });
+    document.getElementById('addBtn').addEventListener('click', (e) => { e.preventDefault(); addToHistory(); });
+
+    ['input','change'].forEach(evt => {
+      [itemName,acqDate,isBanned,buyPrice,buyFee,sellPrice,sellFee,wdPct,wdFix,qty,targetRoi].forEach(el => el.addEventListener(evt, calculate));
+      document.querySelectorAll('input[name="payout"]').forEach(el => el.addEventListener(evt, calculate));
+      search.addEventListener(evt, renderHistory);
+    });
+
+    toggleSelect.addEventListener('change', () => { const on = toggleSelect.checked; historyBody.querySelectorAll('input.sel').forEach(ch => { ch.checked = on; }); updateTotals(); });
+    exportCsvBtn.addEventListener('click', exportCsv);
+    exportJsonBtn.addEventListener('click', exportJson);
+    importJsonBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', importJson);
+    document.getElementById('deleteSel').addEventListener('click', deleteSelected);
+    document.getElementById('clearAll').addEventListener('click', clearAll);
+
+    const runBtn = document.getElementById('runTests'); if (runBtn) runBtn.addEventListener('click', runTests);
+
+    // ——— Инициализация ———
+    // Если дата не задана — ставим текущее локальное время в формате datetime-local
+    if (!acqDate.value) acqDate.value = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+    paramsToForm();
+    loadLocal();
+    calculate();
+    applyTabFromHash();
+  </script>
+</body>
+</html>
