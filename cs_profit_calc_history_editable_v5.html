@@ -853,9 +853,17 @@ function enterEdit(id) {
   const dtCell = row.querySelector('.dt');
   dtCell.innerHTML = `<input type="date" class="mini in-dt" value="${toLocalDateValue(r.ts)}" />`;
 
+  // Название
+  const nameCell = row.querySelector('.name');
+  nameCell.innerHTML = `<input class="mini in-name" type="text" value="${(r.name || '').replace(/"/g, '&quot;')}" placeholder="Название лота">`;
+
   // Цены
   const pr = row.querySelector('.prices');
   pr.innerHTML = `Покупка: <input class="mini in-buy" type="number" step="0.01" value="${(r.n||0)}"> → Продажа: <input class="mini in-sell" type="number" step="0.01" value="${(r.x||0)}">`;
+
+  // Комиссии
+  const feesCell = row.querySelector('.fees');
+  feesCell.innerHTML = `покупка <input class="mini in-pc" type="number" step="0.01" min="0" value="${((r.pc||0)*100).toFixed(2)}">% · продажа <input class="mini in-sc" type="number" step="0.01" min="0" value="${((r.sc||0)*100).toFixed(2)}">% · вывод <input class="mini in-wp" type="number" step="0.01" min="0" value="${((r.wp||0)*100).toFixed(2)}">%`;
 
   // Статус
   const st = row.querySelector('.status');
@@ -880,15 +888,26 @@ function saveEdit(id) {
   const row = historyBody.querySelector(`tr[data-id="${id}"]`);
   const r = list[idx];
 
+  const inName = row.querySelector('.in-name');
   const inBuy = row.querySelector('.in-buy');
   const inSell = row.querySelector('.in-sell');
+  const inPc = row.querySelector('.in-pc');
+  const inSc = row.querySelector('.in-sc');
+  const inWp = row.querySelector('.in-wp');
   const inDt   = row.querySelector('.in-dt');
   const inCompleted = row.querySelector('.in-completed');
 
   const newBuy = asNum(inBuy);
   const newSell = asNum(inSell);
+  const newPc = asNum(inPc);
+  const newSc = asNum(inSc);
+  const newWp = asNum(inWp);
+  if (inName) r.name = (inName.value || '').trim();
   if (newBuy > 0) r.n = newBuy;
   if (newSell > 0) r.x = newSell;
+  if (newPc >= 0) r.pc = newPc / 100;
+  if (newSc >= 0) r.sc = newSc / 100;
+  if (newWp >= 0) r.wp = newWp / 100;
   if (inDt && inDt.value) { try { r.ts = new Date(inDt.value + 'T00:00:00').getTime(); } catch(e){} }
   r.completed = !!(inCompleted && inCompleted.checked);
 
